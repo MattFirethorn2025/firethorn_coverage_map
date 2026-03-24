@@ -7,6 +7,10 @@ export const msalConfig = {
     authority: `https://login.microsoftonline.com/${tenantId}`,
     redirectUri: "http://localhost:5173/auth/callback",
   },
+  cache: {
+    cacheLocation: "sessionStorage",
+    storeAuthStateInCookie: false,
+  },
 };
 
 export const loginRequest = {
