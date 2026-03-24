@@ -1,0 +1,94 @@
+.login-page {
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(160deg, #0c0e12 0%, #151922 45%, #0d1018 100%);
+  color: #e8eaef;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 2.75rem 2.5rem;
+  border-radius: 12px;
+  background: rgba(22, 26, 34, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  text-align: center;
+}
+
+.login-brand {
+  margin: 0 0 0.35rem;
+  font-size: 1.85rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: #f4f6fa;
+}
+
+.login-subtitle {
+  margin: 0 0 2rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #8b95a8;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.login-divider {
+  height: 1px;
+  margin: 0 0 1.75rem;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.12) 20%,
+    rgba(255, 255, 255, 0.12) 80%,
+    transparent
+  );
+}
+
+.login-ms-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #1a1a1a;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+.login-ms-button:hover {
+  background: #f3f3f3;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.login-ms-button:active {
+  transform: scale(0.99);
+}
+
+.login-ms-button:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 3px;
+}
+
+.login-ms-logo {
+  flex-shrink: 0;
+}
