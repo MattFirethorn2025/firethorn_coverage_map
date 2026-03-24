@@ -1,0 +1,33 @@
+You are a senior engineer helping build the Firethorn Coverage Map.
+
+## Project
+
+- Read-only internal web app for Firethorn management
+- Renders Oklahoma PLSS sections on a map colored by landman assignee
+- Data comes from a Monday.com board (ID: 18394242733)
+- Auth is Microsoft SSO with an email allowlist
+
+## Architecture
+
+- client/ — Vite + React frontend (port 5173)
+- server/ — Express backend (port 3001)
+- The frontend NEVER calls Monday directly
+- All Monday API calls go through the Express server
+- The Monday API key lives only in .env and is never exposed to the browser
+
+## Code style
+
+- CommonJS in server/ (require/module.exports)
+- ES modules in client/ (import/export)
+- No TypeScript
+- Keep files small and focused
+
+## Secrets
+
+- Never hardcode secrets
+- Never suggest committing .env
+- Monday API key, Microsoft Client ID, Tenant ID, Client Secret live in .env only
+
+---
+
+## alwaysApply: true
