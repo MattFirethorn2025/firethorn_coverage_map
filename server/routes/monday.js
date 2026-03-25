@@ -10,6 +10,13 @@ const COLUMN_IDS = [
   "color_mm19yfgj",
   "status__1",
   "asking_price___nma__1",
+  "st__1",
+  "date_sent_batch9__1",
+  "text_mm19bsbh",
+  "date_assigned__1",
+  "date__1",
+  "numbers__1",
+  "production__1",
 ];
 const CACHE_TTL_MS = 3 * 60 * 1000;
 let sectionsCache = null;
@@ -75,6 +82,13 @@ function transformItems(rawItems) {
     const landman = cols.color_mm19yfgj ?? "";
     const activity = cols.status__1 ?? "";
     const priceNma = cols.asking_price___nma__1 ?? "";
+    const st = cols.st__1 ?? "";
+    const dateSentBatch = cols.date_sent_batch9__1 ?? "";
+    const effDate = cols.text_mm19bsbh ?? "";
+    const dateAssigned = cols.date_assigned__1 ?? "";
+    const activityDate = cols.date__1 ?? "";
+    const numWells = cols.numbers__1 ?? "";
+    const productionNotes = cols.production__1 ?? "";
 
     const strKey = [sec, twp, range]
       .map((s) => String(s).trim().toLowerCase())
@@ -90,6 +104,13 @@ function transformItems(rawItems) {
       landman,
       activity,
       priceNma,
+      st,
+      dateSentBatch,
+      effDate,
+      dateAssigned,
+      activityDate,
+      numWells,
+      productionNotes,
       strKey,
     };
   });
