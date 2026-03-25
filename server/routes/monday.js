@@ -11,6 +11,8 @@ const COLUMN_IDS = [
   "status__1",
   "asking_price___nma__1",
 ];
+const CACHE_TTL_MS = 3 * 60 * 1000;
+let sectionsCache = null;
 
 const ITEMS_QUERY = `
   query ($boardIds: [ID!]!, $columnIds: [String!]!, $cursor: String) {
@@ -74,7 +76,7 @@ function transformItems(rawItems) {
     const activity = cols.status__1 ?? "";
     const priceNma = cols.asking_price___nma__1 ?? "";
 
-    const strKey = [county, sec, twp, range]
+    const strKey = [sec, twp, range]
       .map((s) => String(s).trim().toLowerCase())
       .join("|");
 
@@ -120,6 +122,13 @@ router.get("/sections", async (req, res) => {
   const apiKey = process.env.MONDAY_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: "MONDAY_API_KEY is not set" });
+  }
+  if (sectionsCache && Date.now() - sectionsCache.fetchedAtMs < CACHE_TTL_MS) {
+    return res.json({
+      sections: sectionsCache.sections,
+      conflicts: sectionsCache.conflicts,
+      cachedAt: sectionsCache.cachedAt,
+    });
   }
 
   const pages = [];
@@ -176,7 +185,10 @@ router.get("/sections", async (req, res) => {
     }
 
     const { sections, conflicts } = transformItems(allItems);
-    return res.json({ sections, conflicts });
+    const fetchedAtMs = Date.now();
+    const cachedAt = new Date(fetchedAtMs).toISOString();
+    sectionsCache = { sections, conflicts, fetchedAtMs, cachedAt };
+    return res.json({ sections, conflicts, cachedAt });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
