@@ -3,15 +3,99 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import DetailsPanel from "../components/DetailsPanel";
 
+function mergeMondayIntoGeojson(geojson, mondayData) {
+  const mondaySections = Array.isArray(mondayData?.sections)
+    ? mondayData.sections
+    : [];
+  const sectionByStrKey = new Map();
+  for (const section of mondaySections) {
+    const key = String(section?.strKey ?? "")
+      .trim()
+      .toLowerCase();
+    if (!key) continue;
+    const existing = sectionByStrKey.get(key);
+    if (
+      !existing ||
+      (section.landman && section.landman !== "Unassigned")
+    ) {
+      sectionByStrKey.set(key, section);
+    }
+  }
+
+  const conflictKeys = new Set();
+  const conflictsObj =
+    mondayData?.conflicts && typeof mondayData.conflicts === "object"
+      ? mondayData.conflicts
+      : null;
+  if (conflictsObj) {
+    for (const k of Object.keys(conflictsObj)) {
+      const normalized = String(k).trim().toLowerCase();
+      if (normalized) conflictKeys.add(normalized);
+    }
+  }
+
+  const features = Array.isArray(geojson?.features) ? geojson.features : [];
+  for (const feature of features) {
+    const props = feature?.properties ?? {};
+    const sec = String(props.FRSTDIVNO ?? "")
+      .trim()
+      .toLowerCase();
+    const twpParsed = Number.parseInt(
+      String(props.TWNSHPNO ?? "").trim(),
+      10,
+    );
+    const twpNo = Number.isFinite(twpParsed)
+      ? String(twpParsed).padStart(2, "0")
+      : "00";
+    const twpDir = String(props.TWNSHPDIR ?? "")
+      .trim()
+      .toLowerCase();
+    const rangeParsed = Number.parseInt(
+      String(props.RANGENO ?? "").trim(),
+      10,
+    );
+    const rangeNo = Number.isFinite(rangeParsed)
+      ? String(rangeParsed).padStart(2, "0")
+      : "00";
+    const rangeDir = String(props.RANGEDIR ?? "")
+      .trim()
+      .toLowerCase();
+    const twp = `${twpNo}${twpDir}`;
+    const range = `${rangeNo}${rangeDir}`;
+    const key = `${sec}|${twp}|${range}`;
+
+    const section = sectionByStrKey.get(key);
+    props.landman = section?.landman || "Unassigned";
+    props.isConflict = conflictKeys.has(key) ? true : false;
+    props.activity = section?.activity || "";
+    props.priceNma = section?.priceNma || "";
+    props.county = section?.county || "";
+    props.inMonday = section ? true : false;
+    props.strKey = key;
+    feature.properties = props;
+  }
+}
+
+const COUNTY_ZOOM_BOUNDS = [
+  { name: "Ellis", bounds: [[-100.0, 36.0], [-99.14, 36.99]] },
+  { name: "Roger Mills", bounds: [[-100.0, 35.33], [-99.14, 36.0]] },
+  { name: "Custer", bounds: [[-99.14, 35.33], [-98.54, 36.0]] },
+  { name: "Caddo", bounds: [[-98.72, 34.69], [-97.91, 35.57]] },
+];
+
 export default function MapView() {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const mondayDataRef = useRef(null);
+  const plssGeojsonBaselineRef = useRef(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [selectedStrKey, setSelectedStrKey] = useState(null);
   const [conflictSections, setConflictSections] = useState([]);
   const selectedStrKeyRef = useRef(null);
   const [legendOpen, setLegendOpen] = useState(true);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
+  const [refreshingMonday, setRefreshingMonday] = useState(false);
+  const [mapMondayReady, setMapMondayReady] = useState(false);
   const landmanColors = useMemo(
     () => ({
       "Ace McMahan": "#e6194b",
@@ -40,6 +124,40 @@ export default function MapView() {
     }),
     [],
   );
+
+  async function handleRefreshMonday() {
+    if (refreshingMonday || !plssGeojsonBaselineRef.current) return;
+    const map = mapRef.current;
+    if (!map?.getSource?.("plss-sections")) return;
+    setRefreshingMonday(true);
+    try {
+      const refreshRes = await fetch("/api/monday/refresh", { method: "POST" });
+      if (!refreshRes.ok) throw new Error("Refresh failed");
+      const mondayResponse = await fetch("/api/monday/sections");
+      if (!mondayResponse.ok) throw new Error("Sections fetch failed");
+      const mondayData = await mondayResponse.json();
+      mondayDataRef.current = mondayData;
+      const gj = JSON.parse(JSON.stringify(plssGeojsonBaselineRef.current));
+      mergeMondayIntoGeojson(gj, mondayData);
+      map.getSource("plss-sections").setData(gj);
+      setLastRefreshed(new Date());
+    } catch (error) {
+      console.error("Failed to refresh Monday data", error);
+    } finally {
+      setRefreshingMonday(false);
+    }
+  }
+
+  const handleRefreshMondayRef = useRef(handleRefreshMonday);
+  handleRefreshMondayRef.current = handleRefreshMonday;
+
+  useEffect(() => {
+    if (!mapMondayReady || !plssGeojsonBaselineRef.current) return;
+    const id = setInterval(() => {
+      handleRefreshMondayRef.current();
+    }, 180000);
+    return () => clearInterval(id);
+  }, [mapMondayReady]);
 
   useEffect(() => {
     selectedStrKeyRef.current = selectedStrKey;
@@ -85,6 +203,9 @@ export default function MapView() {
         ]);
         mondayDataRef.current = mondayData;
 
+        plssGeojsonBaselineRef.current = JSON.parse(JSON.stringify(geojson));
+        mergeMondayIntoGeojson(geojson, mondayData);
+
         const mondaySections = Array.isArray(mondayData?.sections)
           ? mondayData.sections
           : [];
@@ -102,19 +223,6 @@ export default function MapView() {
             sectionByStrKey.set(key, section);
           }
         }
-
-        const conflictKeys = new Set();
-        const conflictsObj =
-          mondayData?.conflicts && typeof mondayData.conflicts === "object"
-            ? mondayData.conflicts
-            : null;
-        if (conflictsObj) {
-          for (const k of Object.keys(conflictsObj)) {
-            const normalized = String(k).trim().toLowerCase();
-            if (normalized) conflictKeys.add(normalized);
-          }
-        }
-
         console.log("Monday map size:", sectionByStrKey.size);
         console.log("Monday sections total:", mondaySections.length);
         const assignedCount = mondaySections.filter(
@@ -125,45 +233,6 @@ export default function MapView() {
         const features = Array.isArray(geojson?.features)
           ? geojson.features
           : [];
-        for (const feature of features) {
-          const props = feature?.properties ?? {};
-          const sec = String(props.FRSTDIVNO ?? "")
-            .trim()
-            .toLowerCase();
-          const twpParsed = Number.parseInt(
-            String(props.TWNSHPNO ?? "").trim(),
-            10,
-          );
-          const twpNo = Number.isFinite(twpParsed)
-            ? String(twpParsed).padStart(2, "0")
-            : "00";
-          const twpDir = String(props.TWNSHPDIR ?? "")
-            .trim()
-            .toLowerCase();
-          const rangeParsed = Number.parseInt(
-            String(props.RANGENO ?? "").trim(),
-            10,
-          );
-          const rangeNo = Number.isFinite(rangeParsed)
-            ? String(rangeParsed).padStart(2, "0")
-            : "00";
-          const rangeDir = String(props.RANGEDIR ?? "")
-            .trim()
-            .toLowerCase();
-          const twp = `${twpNo}${twpDir}`;
-          const range = `${rangeNo}${rangeDir}`;
-          const key = `${sec}|${twp}|${range}`;
-
-          const section = sectionByStrKey.get(key);
-          props.landman = section?.landman || "Unassigned";
-          props.isConflict = conflictKeys.has(key) ? true : false;
-          props.activity = section?.activity || "";
-          props.priceNma = section?.priceNma || "";
-          props.county = section?.county || "";
-          props.inMonday = section ? true : false;
-          props.strKey = key;
-          feature.properties = props;
-        }
 
         console.log(
           "Matched sections:",
@@ -292,12 +361,14 @@ export default function MapView() {
             setConflictSections([]);
           }
         });
+        setMapMondayReady(true);
       } catch (error) {
         console.error("Failed to load map data", error);
       }
     });
 
     return () => {
+      setMapMondayReady(false);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -351,6 +422,79 @@ export default function MapView() {
               ‹
             </button>
             <div style={{ padding: "16px 14px", overflowY: "auto", height: "100%" }}>
+            <button
+              type="button"
+              onClick={handleRefreshMonday}
+              disabled={refreshingMonday}
+              style={{
+                width: "100%",
+                marginBottom: 8,
+                padding: "8px 10px",
+                background: "#1a1a1a",
+                border: "1px solid #3a3a3a",
+                borderRadius: 4,
+                color: "#eee",
+                fontSize: 12,
+                cursor: refreshingMonday ? "default" : "pointer",
+                opacity: refreshingMonday ? 0.75 : 1,
+              }}
+            >
+              {refreshingMonday ? "Refreshing..." : "Refresh Monday data"}
+            </button>
+            {lastRefreshed != null && (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "#aaa",
+                  marginBottom: 12,
+                }}
+              >
+                Updated{" "}
+                {lastRefreshed.toLocaleTimeString(undefined, {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </div>
+            )}
+            <div
+              style={{
+                fontWeight: 600,
+                fontSize: 11,
+                color: "#aaa",
+                marginBottom: 8,
+              }}
+            >
+              Zoom to County
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 6,
+                marginBottom: 14,
+              }}
+            >
+              {COUNTY_ZOOM_BOUNDS.map(({ name, bounds }) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() =>
+                    mapRef.current?.fitBounds(bounds, { padding: 20 })
+                  }
+                  style={{
+                    padding: "8px 6px",
+                    background: "#1a1a1a",
+                    border: "1px solid #3a3a3a",
+                    borderRadius: 4,
+                    color: "#eee",
+                    fontSize: 11,
+                    cursor: "pointer",
+                  }}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
             <div
               style={{
                 fontWeight: 700,

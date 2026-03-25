@@ -215,4 +215,9 @@ router.get("/sections", async (req, res) => {
   }
 });
 
+router.post("/refresh", (req, res) => {
+  sectionsCache = null;
+  return res.json({ ok: true, message: "Cache cleared" });
+});
+
 module.exports = router;
