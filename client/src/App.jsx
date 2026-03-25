@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useIsAuthenticated, useMsal } from '@azure/msal-react'
 import AuthCallback from './pages/AuthCallback.jsx'
 import Login from './pages/Login.jsx'
+import SectionsTable from './pages/SectionsTable.jsx'
 
 function App() {
   const [pathname, setPathname] = useState(() => window.location.pathname)
@@ -23,7 +24,7 @@ function App() {
     return <Login />
   }
 
-  return <div>Map goes here</div>
+  return <SectionsTable />
 }
 
 export default App
