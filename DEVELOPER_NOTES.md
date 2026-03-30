@@ -27,7 +27,6 @@ Internal read-only app: Oklahoma PLSS sections on a map, colored by landman from
    ```
 
    This runs `concurrently`:
-
    - **Client:** Vite dev server — [http://localhost:5173](http://localhost:5173)
    - **Server:** Express — [http://localhost:3001](http://localhost:3001)
 
@@ -52,16 +51,16 @@ Internal read-only app: Oklahoma PLSS sections on a map, colored by landman from
 
 ## Environment variables
 
-| Variable | Where | Purpose |
-|----------|--------|---------|
-| `MONDAY_API_KEY` | **Root `.env`** | Monday GraphQL API token. Used only on the server; sent as the `Authorization` header in `server/routes/monday.js`. Never exposed to the browser. |
-| `PORT` | **Root `.env`** (optional) | Express listen port. Defaults to **3001** if unset. |
-| `VITE_CLIENT_ID` | **`client/.env` or root** (see Vite docs) | Azure AD app (client) ID for MSAL. |
-| `VITE_TENANT_ID` | Same | Azure AD tenant ID. Used to build the authority URL in `client/src/authConfig.js`. |
+| Variable         | Where                                     | Purpose                                                                                                                                           |
+| ---------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MONDAY_API_KEY` | **Root `.env`**                           | Monday GraphQL API token. Used only on the server; sent as the `Authorization` header in `server/routes/monday.js`. Never exposed to the browser. |
+| `PORT`           | **Root `.env`** (optional)                | Express listen port. Defaults to **3001** if unset.                                                                                               |
+| `VITE_CLIENT_ID` | **`client/.env` or root** (see Vite docs) | Azure AD app (client) ID for MSAL.                                                                                                                |
+| `VITE_TENANT_ID` | Same                                      | Azure AD tenant ID. Used to build the authority URL in `client/src/authConfig.js`.                                                                |
 
 **Do not commit `.env`.** The repo rules also mention other secrets (e.g. client secret) for Azure apps; this codebase’s login flow uses the **public** MSAL redirect flow with `openid`, `profile`, and `email` — there is **no** Express route consuming an Azure client secret for the map app itself. If you add backend Azure validation later, document new vars here.
 
-**Production MSAL:** `client/src/authConfig.js` currently hardcodes `redirectUri: "http://localhost:5173/auth/callback"`. For a deployed host you must change that to your real origin (ideally via `import.meta.env.VITE_REDIRECT_URI` or similar) **and** register the same redirect URI in the Azure app registration.
+**Production MSAL:** `client/src/authConfig.js` uses `import.meta.env.VITE_REDIRECT_URI` with a fallback to `http://localhost:5173/auth/callback`. Set `VITE_REDIRECT_URI` to `https://<your-netlify-site>.netlify.app/auth/callback` in Netlify's environment variables and register the same URI in the Azure app registration.
 
 ---
 
@@ -114,34 +113,34 @@ Internal read-only app: Oklahoma PLSS sections on a map, colored by landman from
 
 ## Cache and refresh
 
-| Mechanism | Behavior |
-|-----------|----------|
-| **Server TTL cache** | `sectionsCache` in `server/routes/monday.js`. `GET /api/monday/sections` returns cached data if age &lt; **3 minutes** (`CACHE_TTL_MS`). Response may include `cachedAt` (ISO string). |
-| **`POST /api/monday/refresh`** | Sets `sectionsCache = null`. Does **not** fetch Monday by itself; the next `GET /api/monday/sections` repopulates the cache. |
-| **Client refresh** | `handleRefreshMonday` in `MapView.jsx`: `POST /api/monday/refresh`, then `GET /api/monday/sections`, then merge into a clone of `plssGeojsonBaselineRef` and `setData` on the map source. Updates `lastRefreshed` on success. |
-| **Polling** | A `useEffect` starts a **3‑minute** `setInterval` that invokes the same `handleRefreshMonday` (via a ref) only after the map has finished initial load (`mapMondayReady` and baseline ref set). |
+| Mechanism                      | Behavior                                                                                                                                                                                                                      |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Server TTL cache**           | `sectionsCache` in `server/routes/monday.js`. `GET /api/monday/sections` returns cached data if age &lt; **3 minutes** (`CACHE_TTL_MS`). Response may include `cachedAt` (ISO string).                                        |
+| **`POST /api/monday/refresh`** | Sets `sectionsCache = null`. Does **not** fetch Monday by itself; the next `GET /api/monday/sections` repopulates the cache.                                                                                                  |
+| **Client refresh**             | `handleRefreshMonday` in `MapView.jsx`: `POST /api/monday/refresh`, then `GET /api/monday/sections`, then merge into a clone of `plssGeojsonBaselineRef` and `setData` on the map source. Updates `lastRefreshed` on success. |
+| **Polling**                    | A `useEffect` starts a **3‑minute** `setInterval` that invokes the same `handleRefreshMonday` (via a ref) only after the map has finished initial load (`mapMondayReady` and baseline ref set).                               |
 
 ---
 
 ## Key files
 
-| Path | Role |
-|------|------|
-| `package.json` | Root scripts: `dev`, `dev:client`, `dev:server`. |
-| `client/vite.config.js` | Dev proxy `/api` → `localhost:3001`. |
-| `client/src/main.jsx` | MSAL bootstrap. |
-| `client/src/authConfig.js` | `msalConfig`, `loginRequest`; **check `redirectUri` for prod**. |
-| `client/src/App.jsx` | Route split: `/auth/callback` vs login vs `MapView`. |
-| `client/src/pages/Login.jsx` | Microsoft sign-in button. |
-| `client/src/pages/AuthCallback.jsx` | Redirect handler + email allowlist + logout for denied users. |
-| `client/src/pages/MapView.jsx` | MapLibre map, merge logic, refresh/polling, sidebar (legend, refresh, county zoom). |
-| `client/src/components/DetailsPanel.jsx` | Slide-out detail cards for selected section / conflicts. |
-| `client/src/components/FilterSidebar.jsx` | **Not imported by the app today** — legacy or future UI; safe to ignore unless you wire it in. |
-| `client/public/four_counties_plss.geojson` | Section polygons for the four-county window. |
-| `server/index.js` | Express app, loads root `.env`, mounts `monday` router, health check. |
-| `server/routes/monday.js` | Monday GraphQL fetch, transform, cache, `GET /sections`, `POST /refresh`. |
-| `scripts/fetch-plss.js` | Downloads Oklahoma PLSS section GeoJSON from BLM ArcGIS into `oklahoma_plss_sections.geojson`. |
-| `scripts/filter-plss.js` | Filters to the four-county STR window, dedupes by `FRSTDIVID`, normalizes `TWNSHPNO` / `RANGENO` padding; writes `four_counties_plss.geojson` (copy into `client/public/` for the app). |
+| Path                                       | Role                                                                                                                                                                                    |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.json`                             | Root scripts: `dev`, `dev:client`, `dev:server`.                                                                                                                                        |
+| `client/vite.config.js`                    | Dev proxy `/api` → `localhost:3001`.                                                                                                                                                    |
+| `client/src/main.jsx`                      | MSAL bootstrap.                                                                                                                                                                         |
+| `client/src/authConfig.js`                 | `msalConfig`, `loginRequest`; **check `redirectUri` for prod**.                                                                                                                         |
+| `client/src/App.jsx`                       | Route split: `/auth/callback` vs login vs `MapView`.                                                                                                                                    |
+| `client/src/pages/Login.jsx`               | Microsoft sign-in button.                                                                                                                                                               |
+| `client/src/pages/AuthCallback.jsx`        | Redirect handler + email allowlist + logout for denied users.                                                                                                                           |
+| `client/src/pages/MapView.jsx`             | MapLibre map, merge logic, refresh/polling, sidebar (legend, refresh, county zoom).                                                                                                     |
+| `client/src/components/DetailsPanel.jsx`   | Slide-out detail cards for selected section / conflicts.                                                                                                                                |
+| `client/src/components/FilterSidebar.jsx`  | **Not imported by the app today** — legacy or future UI; safe to ignore unless you wire it in.                                                                                          |
+| `client/public/four_counties_plss.geojson` | Section polygons for the four-county window.                                                                                                                                            |
+| `server/index.js`                          | Express app, loads root `.env`, mounts `monday` router, health check.                                                                                                                   |
+| `server/routes/monday.js`                  | Monday GraphQL fetch, transform, cache, `GET /sections`, `POST /refresh`.                                                                                                               |
+| `scripts/fetch-plss.js`                    | Downloads Oklahoma PLSS section GeoJSON from BLM ArcGIS into `oklahoma_plss_sections.geojson`.                                                                                          |
+| `scripts/filter-plss.js`                   | Filters to the four-county STR window, dedupes by `FRSTDIVID`, normalizes `TWNSHPNO` / `RANGENO` padding; writes `four_counties_plss.geojson` (copy into `client/public/` for the app). |
 
 ---
 
