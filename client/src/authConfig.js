@@ -5,7 +5,9 @@ export const msalConfig = {
   auth: {
     clientId,
     authority: `https://login.microsoftonline.com/${tenantId}`,
-    redirectUri: "http://localhost:5173/auth/callback",
+    redirectUri:
+      import.meta.env.VITE_REDIRECT_URI ||
+      "http://localhost:5173/auth/callback",
   },
   cache: {
     cacheLocation: "sessionStorage",
