@@ -95,6 +95,9 @@ export default function MapView() {
   const [legendOpen, setLegendOpen] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState(null);
   const [refreshingMonday, setRefreshingMonday] = useState(false);
+  const [highlightedLandman, setHighlightedLandman] = useState(null);
+  const [detailSource, setDetailSource] = useState(null);
+  const [summaryMode, setSummaryMode] = useState(false);
   const [mapMondayReady, setMapMondayReady] = useState(false);
   const landmanColors = useMemo(
     () => ({
@@ -158,6 +161,77 @@ export default function MapView() {
     }, 180000);
     return () => clearInterval(id);
   }, [mapMondayReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map?.getLayer("plss-fill")) return;
+
+    if (highlightedLandman == null) {
+      map.setPaintProperty("plss-fill", "fill-opacity", [
+        "case",
+        ["==", ["get", "inMonday"], true],
+        0.6,
+        0,
+      ]);
+      return;
+    }
+
+    if (highlightedLandman === "conflicts") {
+      map.setPaintProperty("plss-fill", "fill-opacity", [
+        "case",
+        ["==", ["get", "isConflict"], true],
+        1,
+        0.15,
+      ]);
+      return;
+    }
+
+    map.setPaintProperty("plss-fill", "fill-opacity", [
+      "match",
+      ["get", "landman"],
+      highlightedLandman,
+      1,
+      0.15,
+    ]);
+  }, [highlightedLandman]);
+
+  function handleLegendLandmanToggle(name) {
+    setHighlightedLandman((prev) => {
+      if (prev === name) {
+        setSummaryMode(false);
+        setDetailSource(null);
+        setSelectedSection(null);
+        setConflictSections([]);
+        setSelectedStrKey(null);
+        return null;
+      }
+      setSummaryMode(true);
+      setDetailSource("landman");
+      setSelectedSection(null);
+      setConflictSections([]);
+      setSelectedStrKey(null);
+      return name;
+    });
+  }
+
+  function handleLegendConflictsToggle() {
+    setHighlightedLandman((prev) => {
+      if (prev === "conflicts") {
+        setSummaryMode(false);
+        setDetailSource(null);
+        setSelectedSection(null);
+        setConflictSections([]);
+        setSelectedStrKey(null);
+        return null;
+      }
+      setSummaryMode(true);
+      setDetailSource("conflicts");
+      setSelectedSection(null);
+      setConflictSections([]);
+      setSelectedStrKey(null);
+      return "conflicts";
+    });
+  }
 
   useEffect(() => {
     selectedStrKeyRef.current = selectedStrKey;
@@ -347,9 +421,13 @@ export default function MapView() {
             setSelectedSection(null);
             setConflictSections([]);
             setSelectedStrKey(null);
+            setDetailSource(null);
+            setSummaryMode(false);
             return;
           }
           setSelectedStrKey(key);
+          setDetailSource(null);
+          setSummaryMode(false);
           if (isConflict && mondayDataRef.current?.conflicts?.[key]) {
             setSelectedSection(mondayDataRef.current.conflicts[key][0]);
             setConflictSections(mondayDataRef.current.conflicts[key]);
@@ -499,20 +577,87 @@ export default function MapView() {
               style={{
                 fontWeight: 700,
                 fontSize: 14,
-                marginBottom: 12,
+                marginBottom: 2,
                 color: "#fff",
               }}
             >
               Legend
             </div>
+            <div
+              style={{
+                fontSize: 10,
+                color: "#666",
+                marginBottom: 10,
+              }}
+            >
+              Click to highlight
+            </div>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={handleLegendConflictsToggle}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleLegendConflictsToggle();
+                }
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 7,
+                padding: "4px 6px",
+                borderRadius: 4,
+                borderLeft:
+                  highlightedLandman === "conflicts"
+                    ? "3px solid #fff"
+                    : "3px solid transparent",
+                background:
+                  highlightedLandman === "conflicts"
+                    ? "#2a2a2a"
+                    : "transparent",
+                cursor: "pointer",
+              }}
+            >
+              <div
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: 2,
+                  background: "#e74c3c",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ fontSize: 12, color: "#ddd" }}>Conflicts</span>
+            </div>
             {Object.entries(landmanColors).map(([name, color]) => (
               <div
                 key={name}
+                role="button"
+                tabIndex={0}
+                onClick={() => handleLegendLandmanToggle(name)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleLegendLandmanToggle(name);
+                  }
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
                   marginBottom: 7,
+                  padding: "4px 6px",
+                  borderRadius: 4,
+                  borderLeft:
+                    highlightedLandman === name
+                      ? "3px solid #fff"
+                      : "3px solid transparent",
+                  background:
+                    highlightedLandman === name ? "#2a2a2a" : "transparent",
+                  cursor: "pointer",
                 }}
               >
                 <div
@@ -586,10 +731,23 @@ export default function MapView() {
         <DetailsPanel
           section={selectedSection}
           conflictSections={conflictSections}
+          summaryMode={summaryMode}
+          detailSource={detailSource}
+          highlightedLandman={highlightedLandman}
+          mondayData={mondayDataRef.current}
+          onBackToSummary={() => setSummaryMode(true)}
+          onSelectSection={(nextSection, nextConflictSections = []) => {
+            setSummaryMode(false);
+            setSelectedSection(nextSection ?? null);
+            setConflictSections(nextConflictSections);
+            setSelectedStrKey(nextSection?.strKey ?? null);
+          }}
           onClose={() => {
+            setSummaryMode(false);
+            setDetailSource(null);
             setSelectedSection(null);
             setConflictSections([]);
-          setSelectedStrKey(null);
+            setSelectedStrKey(null);
           }}
         />
     </div>
