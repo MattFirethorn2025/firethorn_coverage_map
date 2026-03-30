@@ -74,6 +74,31 @@ function mergeMondayIntoGeojson(geojson, mondayData) {
     props.strKey = key;
     feature.properties = props;
   }
+
+  const mondayTownships = new Set();
+  for (const feature of features) {
+    const props = feature?.properties ?? {};
+    if (props.inMonday !== true) continue;
+    const townshipKey = [
+      String(props.TWNSHPNO ?? "").trim().toLowerCase(),
+      String(props.TWNSHPDIR ?? "").trim().toLowerCase(),
+      String(props.RANGENO ?? "").trim().toLowerCase(),
+      String(props.RANGEDIR ?? "").trim().toLowerCase(),
+    ].join("|");
+    if (townshipKey !== "|||") mondayTownships.add(townshipKey);
+  }
+
+  for (const feature of features) {
+    const props = feature?.properties ?? {};
+    const townshipKey = [
+      String(props.TWNSHPNO ?? "").trim().toLowerCase(),
+      String(props.TWNSHPDIR ?? "").trim().toLowerCase(),
+      String(props.RANGENO ?? "").trim().toLowerCase(),
+      String(props.RANGEDIR ?? "").trim().toLowerCase(),
+    ].join("|");
+    props.inMondayTownship = mondayTownships.has(townshipKey);
+    feature.properties = props;
+  }
 }
 
 const COUNTY_ZOOM_BOUNDS = [
@@ -86,6 +111,7 @@ const COUNTY_ZOOM_BOUNDS = [
 export default function MapView() {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
+  const savedMapPositionRef = useRef(null);
   const mondayDataRef = useRef(null);
   const plssGeojsonBaselineRef = useRef(null);
   const [selectedSection, setSelectedSection] = useState(null);
@@ -198,6 +224,7 @@ export default function MapView() {
   function handleLegendLandmanToggle(name) {
     setHighlightedLandman((prev) => {
       if (prev === name) {
+        mapRef.current?.easeTo({ zoom: 9 });
         setSummaryMode(false);
         setDetailSource(null);
         setSelectedSection(null);
@@ -354,9 +381,49 @@ export default function MapView() {
           id: "plss-outline",
           type: "line",
           source: "plss-sections",
+          filter: ["==", ["get", "inMondayTownship"], true],
           paint: {
             "line-color": "#2a6099",
             "line-width": 0.5,
+            "line-opacity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              8, 0,
+              9, 1,
+            ],
+          },
+        });
+
+        map.addSource("township-labels-source", {
+          type: "geojson",
+          data: "/townships.geojson",
+        });
+
+        map.addLayer({
+          id: "township-labels",
+          type: "symbol",
+          source: "township-labels-source",
+          layout: {
+            "text-field": ["get", "label"],
+            "text-size": 11,
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            "text-anchor": "center",
+            visibility: "visible",
+          },
+          paint: {
+            "text-color": "#ffffff",
+            "text-halo-color": "#000000",
+            "text-halo-width": 1.5,
+            "text-opacity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              8.5, 0,
+              9, 1,
+              11, 1,
+              11.5, 0,
+            ],
           },
         });
 
@@ -735,8 +802,75 @@ export default function MapView() {
           detailSource={detailSource}
           highlightedLandman={highlightedLandman}
           mondayData={mondayDataRef.current}
-          onBackToSummary={() => setSummaryMode(true)}
+          onBackToSummary={() => {
+            const map = mapRef.current;
+            if (map && savedMapPositionRef.current) {
+              map.easeTo({
+                center: savedMapPositionRef.current.center,
+                zoom: 9,
+              });
+            }
+            savedMapPositionRef.current = null;
+            setSummaryMode(true);
+          }}
           onSelectSection={(nextSection, nextConflictSections = []) => {
+            const map = mapRef.current;
+            if (map) {
+              savedMapPositionRef.current = {
+                center: map.getCenter(),
+                zoom: map.getZoom(),
+              };
+            }
+
+            const baselineFeatures = Array.isArray(plssGeojsonBaselineRef.current?.features)
+              ? plssGeojsonBaselineRef.current.features
+              : [];
+            const target = baselineFeatures.find((feature) => {
+              const props = feature?.properties ?? {};
+              const sec = String(props.FRSTDIVNO ?? "").trim().toLowerCase();
+              const twpParsed = Number.parseInt(String(props.TWNSHPNO ?? "").trim(), 10);
+              const twpNo = Number.isFinite(twpParsed)
+                ? String(twpParsed).padStart(2, "0")
+                : "00";
+              const twpDir = String(props.TWNSHPDIR ?? "").trim().toLowerCase();
+              const rangeParsed = Number.parseInt(String(props.RANGENO ?? "").trim(), 10);
+              const rangeNo = Number.isFinite(rangeParsed)
+                ? String(rangeParsed).padStart(2, "0")
+                : "00";
+              const rangeDir = String(props.RANGEDIR ?? "").trim().toLowerCase();
+              const strKey = `${sec}|${twpNo}${twpDir}|${rangeNo}${rangeDir}`;
+              return strKey === String(nextSection?.strKey ?? "");
+            });
+
+            if (map && target?.geometry?.coordinates) {
+              let sumLng = 0;
+              let sumLat = 0;
+              let count = 0;
+              const stack = [target.geometry.coordinates];
+              while (stack.length > 0) {
+                const node = stack.pop();
+                if (!Array.isArray(node)) continue;
+                if (
+                  node.length >= 2 &&
+                  typeof node[0] !== "object" &&
+                  typeof node[1] !== "object"
+                ) {
+                  const lng = Number(node[0]);
+                  const lat = Number(node[1]);
+                  if (Number.isFinite(lng) && Number.isFinite(lat)) {
+                    sumLng += lng;
+                    sumLat += lat;
+                    count += 1;
+                  }
+                } else {
+                  for (const child of node) stack.push(child);
+                }
+              }
+              if (count > 0) {
+                map.easeTo({ center: [sumLng / count, sumLat / count], zoom: 9 });
+              }
+            }
+
             setSummaryMode(false);
             setSelectedSection(nextSection ?? null);
             setConflictSections(nextConflictSections);

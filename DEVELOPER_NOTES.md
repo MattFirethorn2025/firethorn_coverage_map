@@ -2,6 +2,12 @@
 
 Internal read-only app: Oklahoma PLSS sections on a map, colored by landman from Monday.com. If you have not touched this repo in months, start here.
 
+## Production URLs
+
+- Frontend: [https://firethorn-coverage-map.netlify.app](https://firethorn-coverage-map.netlify.app)
+- Backend API: [https://firethorn-server.onrender.com](https://firethorn-server.onrender.com)
+- The Netlify frontend proxies `/api/*` to the Render backend via `netlify.toml`.
+
 ---
 
 ## Running locally
@@ -171,5 +177,12 @@ Internal read-only app: Oklahoma PLSS sections on a map, colored by landman from
 - [ ] Azure app has redirect URI for `…/auth/callback`.
 - [ ] Your email is in `ALLOWED_EMAILS` (or you will be logged out with “access restricted”).
 - [ ] `npm run dev` — open `http://localhost:5173`, sign in, map loads sections.
+
+### Production smoke test
+
+- [ ] Open frontend: [https://firethorn-coverage-map.netlify.app](https://firethorn-coverage-map.netlify.app)
+- [ ] Confirm API health through Netlify proxy: [https://firethorn-coverage-map.netlify.app/api/health](https://firethorn-coverage-map.netlify.app/api/health)
+- [ ] Confirm backend health directly: [https://firethorn-server.onrender.com/api/health](https://firethorn-server.onrender.com/api/health)
+- [ ] Sign in on the production frontend and confirm the map loads with Monday data.
 
 Welcome back.
