@@ -14,5 +14,8 @@
   "type": "commonjs",
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "@turf/union": "^7.3.4"
   }
 }
