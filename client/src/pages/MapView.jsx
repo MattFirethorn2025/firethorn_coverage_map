@@ -14,10 +14,7 @@ function mergeMondayIntoGeojson(geojson, mondayData) {
       .toLowerCase();
     if (!key) continue;
     const existing = sectionByStrKey.get(key);
-    if (
-      !existing ||
-      (section.landman && section.landman !== "Unassigned")
-    ) {
+    if (!existing || (section.landman && section.landman !== "Unassigned")) {
       sectionByStrKey.set(key, section);
     }
   }
@@ -40,20 +37,14 @@ function mergeMondayIntoGeojson(geojson, mondayData) {
     const sec = String(props.FRSTDIVNO ?? "")
       .trim()
       .toLowerCase();
-    const twpParsed = Number.parseInt(
-      String(props.TWNSHPNO ?? "").trim(),
-      10,
-    );
+    const twpParsed = Number.parseInt(String(props.TWNSHPNO ?? "").trim(), 10);
     const twpNo = Number.isFinite(twpParsed)
       ? String(twpParsed).padStart(2, "0")
       : "00";
     const twpDir = String(props.TWNSHPDIR ?? "")
       .trim()
       .toLowerCase();
-    const rangeParsed = Number.parseInt(
-      String(props.RANGENO ?? "").trim(),
-      10,
-    );
+    const rangeParsed = Number.parseInt(String(props.RANGENO ?? "").trim(), 10);
     const rangeNo = Number.isFinite(rangeParsed)
       ? String(rangeParsed).padStart(2, "0")
       : "00";
@@ -80,10 +71,18 @@ function mergeMondayIntoGeojson(geojson, mondayData) {
     const props = feature?.properties ?? {};
     if (props.inMonday !== true) continue;
     const townshipKey = [
-      String(props.TWNSHPNO ?? "").trim().toLowerCase(),
-      String(props.TWNSHPDIR ?? "").trim().toLowerCase(),
-      String(props.RANGENO ?? "").trim().toLowerCase(),
-      String(props.RANGEDIR ?? "").trim().toLowerCase(),
+      String(props.TWNSHPNO ?? "")
+        .trim()
+        .toLowerCase(),
+      String(props.TWNSHPDIR ?? "")
+        .trim()
+        .toLowerCase(),
+      String(props.RANGENO ?? "")
+        .trim()
+        .toLowerCase(),
+      String(props.RANGEDIR ?? "")
+        .trim()
+        .toLowerCase(),
     ].join("|");
     if (townshipKey !== "|||") mondayTownships.add(townshipKey);
   }
@@ -91,10 +90,18 @@ function mergeMondayIntoGeojson(geojson, mondayData) {
   for (const feature of features) {
     const props = feature?.properties ?? {};
     const townshipKey = [
-      String(props.TWNSHPNO ?? "").trim().toLowerCase(),
-      String(props.TWNSHPDIR ?? "").trim().toLowerCase(),
-      String(props.RANGENO ?? "").trim().toLowerCase(),
-      String(props.RANGEDIR ?? "").trim().toLowerCase(),
+      String(props.TWNSHPNO ?? "")
+        .trim()
+        .toLowerCase(),
+      String(props.TWNSHPDIR ?? "")
+        .trim()
+        .toLowerCase(),
+      String(props.RANGENO ?? "")
+        .trim()
+        .toLowerCase(),
+      String(props.RANGEDIR ?? "")
+        .trim()
+        .toLowerCase(),
     ].join("|");
     props.inMondayTownship = mondayTownships.has(townshipKey);
     feature.properties = props;
@@ -102,10 +109,34 @@ function mergeMondayIntoGeojson(geojson, mondayData) {
 }
 
 const COUNTY_ZOOM_BOUNDS = [
-  { name: "Ellis", bounds: [[-100.0, 36.0], [-99.14, 36.99]] },
-  { name: "Roger Mills", bounds: [[-100.0, 35.33], [-99.14, 36.0]] },
-  { name: "Custer", bounds: [[-99.14, 35.33], [-98.54, 36.0]] },
-  { name: "Caddo", bounds: [[-98.72, 34.69], [-97.91, 35.57]] },
+  {
+    name: "Ellis",
+    bounds: [
+      [-100.0, 36.0],
+      [-99.14, 36.99],
+    ],
+  },
+  {
+    name: "Roger Mills",
+    bounds: [
+      [-100.0, 35.33],
+      [-99.14, 36.0],
+    ],
+  },
+  {
+    name: "Custer",
+    bounds: [
+      [-99.14, 35.33],
+      [-98.54, 36.0],
+    ],
+  },
+  {
+    name: "Caddo",
+    bounds: [
+      [-98.72, 34.69],
+      [-97.91, 35.57],
+    ],
+  },
 ];
 
 export default function MapView() {
@@ -138,7 +169,7 @@ export default function MapView() {
       "Carlos Medrano": "#8bc34a",
       "Derrick Morgan": "#e91e63",
       "Erin Easterling": "#009688",
-      "Felisha": "#9c27b0",
+      Felisha: "#9c27b0",
       "Janet McMullen": "#795548",
       "Joey Payne": "#ff9800",
       "John Aycox": "#1a237e",
@@ -146,10 +177,10 @@ export default function MapView() {
       "Kayla Washer": "#006064",
       "Matt Sharp": "#bf360c",
       "Nikki Brandes": "#4a148c",
-      "Rise": "#558b2f",
+      Rise: "#558b2f",
       "Xander Moody": "#0d47a1",
       "Zackary Weaver": "#880e4f",
-      "Unassigned": "#9e9e9e",
+      Unassigned: "#9e9e9e",
     }),
     [],
   );
@@ -269,24 +300,7 @@ export default function MapView() {
 
     mapRef.current = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: {
-        version: 8,
-        sources: {
-          "osm-tiles": {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap contributors",
-          },
-        },
-        layers: [
-          {
-            id: "osm-tiles",
-            type: "raster",
-            source: "osm-tiles",
-          },
-        ],
-      },
+      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
       center: [-99.5, 35.5],
       zoom: 7,
     });
@@ -368,12 +382,7 @@ export default function MapView() {
           source: "plss-sections",
           paint: {
             "fill-color": fillColor,
-            "fill-opacity": [
-              "case",
-              ["==", ["get", "inMonday"], true],
-              0.6,
-              0,
-            ],
+            "fill-opacity": ["case", ["==", ["get", "inMonday"], true], 0.6, 0],
           },
         });
 
@@ -383,15 +392,25 @@ export default function MapView() {
           source: "plss-sections",
           filter: ["==", ["get", "inMondayTownship"], true],
           paint: {
-            "line-color": "#2a6099",
+            "line-color": "#cccccc",
             "line-width": 0.5,
-            "line-opacity": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              8, 0,
-              9, 1,
-            ],
+            "line-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 1],
+          },
+        });
+
+        map.addLayer({
+          id: "plss-section-numbers",
+          type: "symbol",
+          source: "plss-sections",
+          filter: ["==", ["get", "inMondayTownship"], true],
+          layout: {
+            "symbol-placement": "point",
+            "text-field": ["to-string", ["to-number", ["get", "FRSTDIVNO"]]],
+            "text-size": 10,
+          },
+          paint: {
+            "text-color": "#333333",
+            "text-opacity": ["interpolate", ["linear"], ["zoom"], 11, 0, 12, 1],
           },
         });
 
@@ -400,30 +419,36 @@ export default function MapView() {
           data: "/townships.geojson",
         });
 
+        map.addSource("township-polygons-source", {
+          type: "geojson",
+          data: "/township-polygons.geojson",
+        });
+
+        map.addLayer({
+          id: "township-borders",
+          type: "line",
+          source: "township-polygons-source",
+          paint: {
+            "line-color": "#999999",
+            "line-width": 1.5,
+            "line-opacity": 0.9,
+          },
+        });
+
         map.addLayer({
           id: "township-labels",
           type: "symbol",
           source: "township-labels-source",
           layout: {
             "text-field": ["get", "label"],
-            "text-size": 11,
+            "text-size": 10,
             "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
             "text-anchor": "center",
             visibility: "visible",
           },
           paint: {
-            "text-color": "#ffffff",
-            "text-halo-color": "#000000",
-            "text-halo-width": 1.5,
-            "text-opacity": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              8.5, 0,
-              9, 1,
-              11, 1,
-              11.5, 0,
-            ],
+            "text-color": "#555555",
+            "text-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 1],
           },
         });
 
@@ -439,7 +464,8 @@ export default function MapView() {
           const inMonday = p.inMonday === true || p.inMonday === "true";
 
           if (!inMonday) {
-            panel.innerHTML = '<span style="color:#aaa">Hover over a section</span>';
+            panel.innerHTML =
+              '<span style="color:#aaa">Hover over a section</span>';
             return;
           }
 
@@ -473,7 +499,9 @@ export default function MapView() {
         map.on("mouseleave", "plss-fill", () => {
           map.getCanvas().style.cursor = "";
           const panel = document.getElementById("hover-panel-content");
-          if (panel) panel.innerHTML = '<span style="color:#aaa">Hover over a section</span>';
+          if (panel)
+            panel.innerHTML =
+              '<span style="color:#aaa">Hover over a section</span>';
         });
 
         map.on("click", "plss-fill", (e) => {
@@ -566,149 +594,113 @@ export default function MapView() {
             >
               ‹
             </button>
-            <div style={{ padding: "16px 14px", overflowY: "auto", height: "100%" }}>
-            <button
-              type="button"
-              onClick={handleRefreshMonday}
-              disabled={refreshingMonday}
+            <div
               style={{
-                width: "100%",
-                marginBottom: 8,
-                padding: "8px 10px",
-                background: "#1a1a1a",
-                border: "1px solid #3a3a3a",
-                borderRadius: 4,
-                color: "#eee",
-                fontSize: 12,
-                cursor: refreshingMonday ? "default" : "pointer",
-                opacity: refreshingMonday ? 0.75 : 1,
+                padding: "16px 14px",
+                overflowY: "auto",
+                height: "100%",
               }}
             >
-              {refreshingMonday ? "Refreshing..." : "Refresh Monday data"}
-            </button>
-            {lastRefreshed != null && (
-              <div
+              <button
+                type="button"
+                onClick={handleRefreshMonday}
+                disabled={refreshingMonday}
                 style={{
-                  fontSize: 11,
-                  color: "#aaa",
-                  marginBottom: 12,
+                  width: "100%",
+                  marginBottom: 8,
+                  padding: "8px 10px",
+                  background: "#1a1a1a",
+                  border: "1px solid #3a3a3a",
+                  borderRadius: 4,
+                  color: "#eee",
+                  fontSize: 12,
+                  cursor: refreshingMonday ? "default" : "pointer",
+                  opacity: refreshingMonday ? 0.75 : 1,
                 }}
               >
-                Updated{" "}
-                {lastRefreshed.toLocaleTimeString(undefined, {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-              </div>
-            )}
-            <div
-              style={{
-                fontWeight: 600,
-                fontSize: 11,
-                color: "#aaa",
-                marginBottom: 8,
-              }}
-            >
-              Zoom to County
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 6,
-                marginBottom: 14,
-              }}
-            >
-              {COUNTY_ZOOM_BOUNDS.map(({ name, bounds }) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() =>
-                    mapRef.current?.fitBounds(bounds, { padding: 20 })
-                  }
+                {refreshingMonday ? "Refreshing..." : "Refresh Monday data"}
+              </button>
+              {lastRefreshed != null && (
+                <div
                   style={{
-                    padding: "8px 6px",
-                    background: "#1a1a1a",
-                    border: "1px solid #3a3a3a",
-                    borderRadius: 4,
-                    color: "#eee",
                     fontSize: 11,
-                    cursor: "pointer",
+                    color: "#aaa",
+                    marginBottom: 12,
                   }}
                 >
-                  {name}
-                </button>
-              ))}
-            </div>
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: 14,
-                marginBottom: 2,
-                color: "#fff",
-              }}
-            >
-              Legend
-            </div>
-            <div
-              style={{
-                fontSize: 10,
-                color: "#666",
-                marginBottom: 10,
-              }}
-            >
-              Click to highlight
-            </div>
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={handleLegendConflictsToggle}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleLegendConflictsToggle();
-                }
-              }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 7,
-                padding: "4px 6px",
-                borderRadius: 4,
-                borderLeft:
-                  highlightedLandman === "conflicts"
-                    ? "3px solid #fff"
-                    : "3px solid transparent",
-                background:
-                  highlightedLandman === "conflicts"
-                    ? "#2a2a2a"
-                    : "transparent",
-                cursor: "pointer",
-              }}
-            >
+                  Updated{" "}
+                  {lastRefreshed.toLocaleTimeString(undefined, {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </div>
+              )}
               <div
                 style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: 2,
-                  background: "#e74c3c",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  flexShrink: 0,
+                  fontWeight: 600,
+                  fontSize: 11,
+                  color: "#aaa",
+                  marginBottom: 8,
                 }}
-              />
-              <span style={{ fontSize: 12, color: "#ddd" }}>Conflicts</span>
-            </div>
-            {Object.entries(landmanColors).map(([name, color]) => (
+              >
+                Zoom to County
+              </div>
               <div
-                key={name}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 6,
+                  marginBottom: 14,
+                }}
+              >
+                {COUNTY_ZOOM_BOUNDS.map(({ name, bounds }) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() =>
+                      mapRef.current?.fitBounds(bounds, { padding: 20 })
+                    }
+                    style={{
+                      padding: "8px 6px",
+                      background: "#1a1a1a",
+                      border: "1px solid #3a3a3a",
+                      borderRadius: 4,
+                      color: "#eee",
+                      fontSize: 11,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: 14,
+                  marginBottom: 2,
+                  color: "#fff",
+                }}
+              >
+                Legend
+              </div>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "#666",
+                  marginBottom: 10,
+                }}
+              >
+                Click to highlight
+              </div>
+              <div
                 role="button"
                 tabIndex={0}
-                onClick={() => handleLegendLandmanToggle(name)}
+                onClick={handleLegendConflictsToggle}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    handleLegendLandmanToggle(name);
+                    handleLegendConflictsToggle();
                   }
                 }}
                 style={{
@@ -719,11 +711,13 @@ export default function MapView() {
                   padding: "4px 6px",
                   borderRadius: 4,
                   borderLeft:
-                    highlightedLandman === name
+                    highlightedLandman === "conflicts"
                       ? "3px solid #fff"
                       : "3px solid transparent",
                   background:
-                    highlightedLandman === name ? "#2a2a2a" : "transparent",
+                    highlightedLandman === "conflicts"
+                      ? "#2a2a2a"
+                      : "transparent",
                   cursor: "pointer",
                 }}
               >
@@ -732,15 +726,55 @@ export default function MapView() {
                     width: 14,
                     height: 14,
                     borderRadius: 2,
-                    background: color,
+                    background: "#e74c3c",
                     border: "1px solid rgba(255,255,255,0.15)",
                     flexShrink: 0,
                   }}
                 />
-                <span style={{ fontSize: 12, color: "#ddd" }}>{name}</span>
+                <span style={{ fontSize: 12, color: "#ddd" }}>Conflicts</span>
               </div>
-            ))}
-          </div>
+              {Object.entries(landmanColors).map(([name, color]) => (
+                <div
+                  key={name}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleLegendLandmanToggle(name)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleLegendLandmanToggle(name);
+                    }
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 7,
+                    padding: "4px 6px",
+                    borderRadius: 4,
+                    borderLeft:
+                      highlightedLandman === name
+                        ? "3px solid #fff"
+                        : "3px solid transparent",
+                    background:
+                      highlightedLandman === name ? "#2a2a2a" : "transparent",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: 2,
+                      background: color,
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ fontSize: 12, color: "#ddd" }}>{name}</span>
+                </div>
+              ))}
+            </div>
           </>
         )}
       </div>
@@ -795,95 +829,109 @@ export default function MapView() {
           Hover over a section
         </div>
       </div>
-        <DetailsPanel
-          section={selectedSection}
-          conflictSections={conflictSections}
-          summaryMode={summaryMode}
-          detailSource={detailSource}
-          highlightedLandman={highlightedLandman}
-          mondayData={mondayDataRef.current}
-          onBackToSummary={() => {
-            const map = mapRef.current;
-            if (map && savedMapPositionRef.current) {
-              map.easeTo({
-                center: savedMapPositionRef.current.center,
-                zoom: 9,
-              });
-            }
-            savedMapPositionRef.current = null;
-            setSummaryMode(true);
-          }}
-          onSelectSection={(nextSection, nextConflictSections = []) => {
-            const map = mapRef.current;
-            if (map) {
-              savedMapPositionRef.current = {
-                center: map.getCenter(),
-                zoom: map.getZoom(),
-              };
-            }
-
-            const baselineFeatures = Array.isArray(plssGeojsonBaselineRef.current?.features)
-              ? plssGeojsonBaselineRef.current.features
-              : [];
-            const target = baselineFeatures.find((feature) => {
-              const props = feature?.properties ?? {};
-              const sec = String(props.FRSTDIVNO ?? "").trim().toLowerCase();
-              const twpParsed = Number.parseInt(String(props.TWNSHPNO ?? "").trim(), 10);
-              const twpNo = Number.isFinite(twpParsed)
-                ? String(twpParsed).padStart(2, "0")
-                : "00";
-              const twpDir = String(props.TWNSHPDIR ?? "").trim().toLowerCase();
-              const rangeParsed = Number.parseInt(String(props.RANGENO ?? "").trim(), 10);
-              const rangeNo = Number.isFinite(rangeParsed)
-                ? String(rangeParsed).padStart(2, "0")
-                : "00";
-              const rangeDir = String(props.RANGEDIR ?? "").trim().toLowerCase();
-              const strKey = `${sec}|${twpNo}${twpDir}|${rangeNo}${rangeDir}`;
-              return strKey === String(nextSection?.strKey ?? "");
+      <DetailsPanel
+        section={selectedSection}
+        conflictSections={conflictSections}
+        summaryMode={summaryMode}
+        detailSource={detailSource}
+        highlightedLandman={highlightedLandman}
+        mondayData={mondayDataRef.current}
+        onBackToSummary={() => {
+          const map = mapRef.current;
+          if (map && savedMapPositionRef.current) {
+            map.easeTo({
+              center: savedMapPositionRef.current.center,
+              zoom: 9,
             });
+          }
+          savedMapPositionRef.current = null;
+          setSummaryMode(true);
+        }}
+        onSelectSection={(nextSection, nextConflictSections = []) => {
+          const map = mapRef.current;
+          if (map) {
+            savedMapPositionRef.current = {
+              center: map.getCenter(),
+              zoom: map.getZoom(),
+            };
+          }
 
-            if (map && target?.geometry?.coordinates) {
-              let sumLng = 0;
-              let sumLat = 0;
-              let count = 0;
-              const stack = [target.geometry.coordinates];
-              while (stack.length > 0) {
-                const node = stack.pop();
-                if (!Array.isArray(node)) continue;
-                if (
-                  node.length >= 2 &&
-                  typeof node[0] !== "object" &&
-                  typeof node[1] !== "object"
-                ) {
-                  const lng = Number(node[0]);
-                  const lat = Number(node[1]);
-                  if (Number.isFinite(lng) && Number.isFinite(lat)) {
-                    sumLng += lng;
-                    sumLat += lat;
-                    count += 1;
-                  }
-                } else {
-                  for (const child of node) stack.push(child);
+          const baselineFeatures = Array.isArray(
+            plssGeojsonBaselineRef.current?.features,
+          )
+            ? plssGeojsonBaselineRef.current.features
+            : [];
+          const target = baselineFeatures.find((feature) => {
+            const props = feature?.properties ?? {};
+            const sec = String(props.FRSTDIVNO ?? "")
+              .trim()
+              .toLowerCase();
+            const twpParsed = Number.parseInt(
+              String(props.TWNSHPNO ?? "").trim(),
+              10,
+            );
+            const twpNo = Number.isFinite(twpParsed)
+              ? String(twpParsed).padStart(2, "0")
+              : "00";
+            const twpDir = String(props.TWNSHPDIR ?? "")
+              .trim()
+              .toLowerCase();
+            const rangeParsed = Number.parseInt(
+              String(props.RANGENO ?? "").trim(),
+              10,
+            );
+            const rangeNo = Number.isFinite(rangeParsed)
+              ? String(rangeParsed).padStart(2, "0")
+              : "00";
+            const rangeDir = String(props.RANGEDIR ?? "")
+              .trim()
+              .toLowerCase();
+            const strKey = `${sec}|${twpNo}${twpDir}|${rangeNo}${rangeDir}`;
+            return strKey === String(nextSection?.strKey ?? "");
+          });
+
+          if (map && target?.geometry?.coordinates) {
+            let sumLng = 0;
+            let sumLat = 0;
+            let count = 0;
+            const stack = [target.geometry.coordinates];
+            while (stack.length > 0) {
+              const node = stack.pop();
+              if (!Array.isArray(node)) continue;
+              if (
+                node.length >= 2 &&
+                typeof node[0] !== "object" &&
+                typeof node[1] !== "object"
+              ) {
+                const lng = Number(node[0]);
+                const lat = Number(node[1]);
+                if (Number.isFinite(lng) && Number.isFinite(lat)) {
+                  sumLng += lng;
+                  sumLat += lat;
+                  count += 1;
                 }
-              }
-              if (count > 0) {
-                map.easeTo({ center: [sumLng / count, sumLat / count], zoom: 9 });
+              } else {
+                for (const child of node) stack.push(child);
               }
             }
+            if (count > 0) {
+              map.easeTo({ center: [sumLng / count, sumLat / count], zoom: 9 });
+            }
+          }
 
-            setSummaryMode(false);
-            setSelectedSection(nextSection ?? null);
-            setConflictSections(nextConflictSections);
-            setSelectedStrKey(nextSection?.strKey ?? null);
-          }}
-          onClose={() => {
-            setSummaryMode(false);
-            setDetailSource(null);
-            setSelectedSection(null);
-            setConflictSections([]);
-            setSelectedStrKey(null);
-          }}
-        />
+          setSummaryMode(false);
+          setSelectedSection(nextSection ?? null);
+          setConflictSections(nextConflictSections);
+          setSelectedStrKey(nextSection?.strKey ?? null);
+        }}
+        onClose={() => {
+          setSummaryMode(false);
+          setDetailSource(null);
+          setSelectedSection(null);
+          setConflictSections([]);
+          setSelectedStrKey(null);
+        }}
+      />
     </div>
   );
 }
